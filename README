@@ -1,0 +1,53 @@
+
+Experimental Django backend using MySQL Connector/Python
+==============================================================================
+
+Disclaimer
+=====================
+
+!!!!!!!!!!! THIS IS STILL IN DEVELOPMENT !!!!!!!!!!!!!!!!!!!
+!!!!!!!! EXPECT THING TO NOT WORK OR GO WRONG !!!!!!!!!!!!!!
+!!!! DO NOT USE IN PRODUCTION etc.. etc... !!!!!!!!!!!!!!!!!
+
+Ah, and make backups! :-)
+
+Dependencies
+=====================
+
+* Python 2.3 or greater.
+* Django 1.2: http://www.djangoproject.com
+* MySQL Connector/Python (currently in development)
+  shell> bzr checkout lp:~mysql/myconnpy/main myconnpy
+  shell> cd myconnpy
+  shell> python setup.py install
+
+Installation
+=====================
+
+To install the Django backend, do the following:
+  shell> python ./setup.py install
+  
+It will install it in site-packages/mysql/django
+
+Usage
+=====================
+
+To configure your Django project to use the backend, set the engine in
+your settings.py like this:
+
+DATABASE_ENGINE='mysql.django'
+
+The above assumes you installed the mysql.django module somewhere where
+Python can find it (see Installation).
+
+Some caveats though:
+* When you were using the DATABASE_OPTIONS and stored settings in an
+  option file, that will not work anymore. Do it the normal Django way.
+* You can't use UNIX Sockets (yet).
+
+Report problems
+=====================
+
+Report problems to Geert Vanderkelen <geert.vanderkelen@sun.com>
+
+
