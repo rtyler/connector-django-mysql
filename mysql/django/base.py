@@ -31,7 +31,10 @@ from django.utils.safestring import SafeString, SafeUnicode
 
 # Raise exceptions for database warnings if DEBUG is on
 from django.conf import settings
-if settings.DEBUG:
+
+# NOTE: Disabling this since `mysql.connector.Database.Warning` is a
+# subclass of StandardError instead of a "warning"
+if False: #settings.DEBUG:
     from warnings import filterwarnings
     filterwarnings("error", category=Database.Warning)
 
@@ -44,7 +47,7 @@ class DjangoMySQLConverter(Database.conversion.MySQLConverter):
     """
     def _TIME_to_python(self, v, dsc=None):
         return util.typecast_time(v)
-    
+
     def _decimal(self, v, desc=None):
         return util.typecast_decimal(v)
     """
