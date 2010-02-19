@@ -62,8 +62,11 @@ server_version_re = re.compile(r'(\d{1,2})\.(\d{1,2})\.(\d{1,2})')
 # TRADITIONAL will automatically cause most warnings to be treated as errors.
 
 class DatabaseFeatures(BaseDatabaseFeatures):
+    allows_group_by_pk = True
     autoindexes_primary_keys = False
     inline_fk_references = False
+    related_fields_match_type = True
+    update_can_self_select = False
 
 
 class DatabaseWrapper(BaseDatabaseWrapper):
