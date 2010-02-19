@@ -22,6 +22,7 @@ import mysql.connector.conversion
 import re
 
 from django.db.backends import *
+from django.db.backends.mysql import base as mysqldb_base
 from django.db.backends.mysql.client import DatabaseClient
 from django.db.backends.mysql.creation import DatabaseCreation
 from django.db.backends.mysql.introspection import DatabaseIntrospection
@@ -64,96 +65,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     autoindexes_primary_keys = False
     inline_fk_references = False
 
-class DatabaseOperations(BaseDatabaseOperations):
-    def date_extract_sql(self, lookup_type, field_name):
-        # http://dev.mysql.com/doc/mysql/en/date-and-time-functions.html
-        return "EXTRACT(%s FROM %s)" % (lookup_type.upper(), field_name)
-
-    def date_trunc_sql(self, lookup_type, field_name):
-        fields = ['year', 'month', 'day', 'hour', 'minute', 'second']
-        format = ('%%Y-', '%%m', '-%%d', ' %%H:', '%%i', ':%%s') # Use double percents to escape.
-        format_def = ('0000-', '01', '-01', ' 00:', '00', ':00')
-        try:
-            i = fields.index(lookup_type) + 1
-        except ValueError:
-            sql = field_name
-        else:
-            format_str = ''.join([f for f in format[:i]] + [f for f in format_def[i:]])
-            sql = "CAST(DATE_FORMAT(%s, '%s') AS DATETIME)" % (field_name, format_str)
-        return sql
-
-    def drop_foreignkey_sql(self):
-        return "DROP FOREIGN KEY"
-
-    def fulltext_search_sql(self, field_name):
-        return 'MATCH (%s) AGAINST (%%s IN BOOLEAN MODE)' % field_name
-
-    def limit_offset_sql(self, limit, offset=None):
-        # 'LIMIT 20,40'
-        sql = "LIMIT "
-        if offset and offset != 0:
-            sql += "%s," % offset
-        return sql + str(limit)
-
-    def quote_name(self, name):
-        if name.startswith("`") and name.endswith("`"):
-            return name # Quoting once is enough.
-        return "`%s`" % name
-
-    def random_function_sql(self):
-        return 'RAND()'
-
-    def sql_flush(self, style, tables, sequences):
-        # NB: The generated SQL below is specific to MySQL
-        # 'TRUNCATE x;', 'TRUNCATE y;', 'TRUNCATE z;'... style SQL statements
-        # to clear all tables of all data
-        if tables:
-            sql = ['SET FOREIGN_KEY_CHECKS = 0;']
-            for table in tables:
-                sql.append('%s %s;' % (style.SQL_KEYWORD('TRUNCATE'), style.SQL_FIELD(self.quote_name(table))))
-            sql.append('SET FOREIGN_KEY_CHECKS = 1;')
-
-            # 'ALTER TABLE table AUTO_INCREMENT = 1;'... style SQL statements
-            # to reset sequence indices
-            sql.extend(["%s %s %s %s %s;" % \
-                (style.SQL_KEYWORD('ALTER'),
-                 style.SQL_KEYWORD('TABLE'),
-                 style.SQL_TABLE(self.quote_name(sequence['table'])),
-                 style.SQL_KEYWORD('AUTO_INCREMENT'),
-                 style.SQL_FIELD('= 1'),
-                ) for sequence in sequences])
-            return sql
-        else:
-            return []
-
-    def value_to_db_datetime(self, value):
-        if value is None:
-            return None
-
-        # MySQL doesn't support tz-aware datetimes
-        if value.tzinfo is not None:
-            raise ValueError("MySQL backend does not support timezone-aware datetimes.")
-
-        # MySQL doesn't support microseconds
-        return unicode(value.replace(microsecond=0))
-
-    def value_to_db_time(self, value):
-        if value is None:
-            return None
-
-        # MySQL doesn't support tz-aware datetimes
-        if value.tzinfo is not None:
-            raise ValueError("MySQL backend does not support timezone-aware datetimes.")
-
-        # MySQL doesn't support microseconds
-        return unicode(value.replace(microsecond=0))
-
-    def year_lookup_bounds(self, value):
-        # Again, no microseconds
-        first = '%s-01-01 00:00:00'
-        second = '%s-12-31 23:59:59.99'
-        return [first % value, second % value]
-
 
 class DatabaseWrapper(BaseDatabaseWrapper):
 
@@ -177,9 +88,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
         self.server_version = None
-        
+
         self.features = DatabaseFeatures()
-        self.ops = DatabaseOperations()
+        self.ops = mysqldb_base.DatabaseOperations()
         self.client = DatabaseClient(self)
         self.creation = DatabaseCreation(self)
         self.introspection = DatabaseIntrospection(self)
